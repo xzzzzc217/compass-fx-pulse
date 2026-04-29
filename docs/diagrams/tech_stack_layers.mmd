@@ -1,0 +1,56 @@
+graph TB
+    subgraph L1["第 1 层 · 表现层 (Presentation)"]
+        direction LR
+        Vue["Vue 2.5 + ElementUI"]
+        Chart["ECharts 5"]
+        Marked["Marked + DOMPurify<br/>(渲染 markdown)"]
+    end
+
+    subgraph L2["第 2 层 · 接入层 (Routing)"]
+        direction LR
+        Flask["Flask 3.0"]
+        SSE["Server-Sent Events<br/>(Agent 流式回答)"]
+        FastMCP["FastMCP<br/>(stdio + HTTP)"]
+    end
+
+    subgraph L3["第 3 层 · 编排层 (Orchestration)"]
+        direction LR
+        LangGraph["LangGraph 1.1<br/>StateGraph"]
+        Reflector["Reflector<br/>质量审查 (LLM-as-Judge)"]
+        Langfuse["Langfuse 4.5<br/>Tracing"]
+    end
+
+    subgraph L4["第 4 层 · 能力层 (Capabilities)"]
+        direction LR
+        Tools["5 Function Calling 工具<br/>get_rate / range / predict /<br/>calc_var / search_kb"]
+        RAGPipe["RAG Pipeline<br/>bge-m3 + bge-reranker-v2-m3"]
+    end
+
+    subgraph L5["第 5 层 · 模型层 (Models)"]
+        direction LR
+        DeepSeek["DeepSeek-Chat<br/>(云端 · 工具决策)"]
+        QwenLoRA["Qwen3-1.7B-Finance<br/>(本地 · QLoRA 微调)"]
+        BGE["bge-m3 + reranker<br/>(本地 · 向量检索)"]
+    end
+
+    subgraph L6["第 6 层 · 数据层 (Data)"]
+        direction LR
+        MySQL[("MySQL 8.0<br/>历史汇率 + SARIMAX 预测")]
+        Chroma[("ChromaDB<br/>251 向量 chunk")]
+        Corpus[("30 篇策展<br/>markdown 语料")]
+        TimeXerData[("ECB 25 年长数据<br/>+ VIX/DXY 外生变量")]
+    end
+
+    L1 --> L2
+    L2 --> L3
+    L3 --> L4
+    L4 --> L5
+    L4 --> L6
+    L5 -.加载权重.-> L6
+
+    style L1 fill:#e3f2fd
+    style L2 fill:#fff8e1
+    style L3 fill:#f3e5f5
+    style L4 fill:#e8f5e9
+    style L5 fill:#ffe0b2
+    style L6 fill:#fce4ec

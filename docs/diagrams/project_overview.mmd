@@ -1,0 +1,63 @@
+graph TB
+    subgraph UI["前端 Vue :8081 (5 个页面)"]
+        Home["首页<br/>项目介绍"]
+        Trend["汇率走势页<br/>ECharts 折线"]
+        Forecast["汇率预测页<br/>SARIMAX 30 天"]
+        AgentUI["智能投顾<br/>(Agent + RAG)"]
+        ChatUI["AI 答疑<br/>(本地 LoRA)"]
+    end
+
+    subgraph Backend["后端 Flask :8080"]
+        direction TB
+        RoutesAgent["routes_agent<br/>SSE /api/agent"]
+        RoutesChat["routes_chat<br/>POST /api/chat"]
+        RoutesRates["routes_rates<br/>GET /api/rates"]
+        AgentCore["agent/core.py<br/>5 节点状态机"]
+        ToolsLayer["agent/tools.py<br/>5 工具实现"]
+        RAGLayer["rag/pipeline.py<br/>检索 + 重排"]
+        Obs["observability.py<br/>Langfuse Trace"]
+    end
+
+    subgraph LLMRoute["LLM 双路由"]
+        DeepSeek["DeepSeek-Chat<br/>云端 (Agent 决策)"]
+        LoRA["Qwen3-1.7B-Finance<br/>本地 :8001 (LoRA 微调)"]
+    end
+
+    subgraph DataStore["数据层"]
+        MySQL[("MySQL<br/>17K 行汇率<br/>900 行预测")]
+        Chroma[("ChromaDB<br/>251 chunks")]
+        Corpus["30 篇策展<br/>markdown 语料"]
+    end
+
+    subgraph External["外部入口"]
+        IDE["Cursor /<br/>Claude Desktop"]
+        MCPSrv["MCP Server<br/>FastMCP stdio"]
+    end
+
+    Home --> RoutesRates
+    Trend --> RoutesRates
+    Forecast --> RoutesRates
+    AgentUI --> RoutesAgent
+    ChatUI --> RoutesChat
+
+    RoutesAgent --> AgentCore
+    RoutesChat -.直连.-> LoRA
+    RoutesRates --> MySQL
+
+    AgentCore --> ToolsLayer
+    AgentCore --> Obs
+    AgentCore -.tool calls.-> DeepSeek
+
+    ToolsLayer --> RAGLayer
+    ToolsLayer --> MySQL
+    RAGLayer --> Chroma
+    Chroma -.离线 ingest.-> Corpus
+
+    IDE --> MCPSrv
+    MCPSrv -.复用同一组工具.-> ToolsLayer
+
+    style AgentCore fill:#fff8e1
+    style ToolsLayer fill:#e8f4fd
+    style RAGLayer fill:#f3e5f5
+    style DeepSeek fill:#c8e6c9
+    style LoRA fill:#ffe0b2

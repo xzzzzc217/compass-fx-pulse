@@ -1,0 +1,43 @@
+sequenceDiagram
+    autonumber
+    participant User as 用户(浏览器)
+    participant FE as 前端Vue<br/>Agent.vue
+    participant BE as 后端Flask<br/>routes_agent
+    participant Agent as Agent<br/>core.py
+    participant LLM as DeepSeek云<br/>(决策大脑)
+    participant Tools as 工具层<br/>tools.py
+    participant DB as MySQL<br/>历史汇率
+    participant RAG as RAG检索<br/>bge-m3+reranker
+    participant Chroma as ChromaDB<br/>251向量chunk
+    participant Reflector as Reflector<br/>(LLM审查员)
+
+    User->>FE: 输入 "什么是 carry trade?"
+    FE->>BE: GET /api/agent?query=...&trace=1<br/>(SSE 长连接)
+    BE->>Agent: stream_agent(query)
+
+    Note over Agent,LLM: Round 1: Planner 决定调哪个工具
+    Agent->>LLM: messages + tools schema
+    LLM-->>Agent: tool_calls=[search_forex_knowledge]
+
+    Note over Agent,Tools: Executor 跑工具
+    Agent->>Tools: execute("search_forex_knowledge", {query})
+    Tools->>RAG: retrieve(query, k=5)
+    RAG->>RAG: bge-m3 编码 query 为 1024 维向量
+    RAG->>Chroma: dense 召回 top-20
+    Chroma-->>RAG: 20 个候选 chunk
+    RAG->>RAG: bge-reranker 重排为 top-5
+    RAG-->>Tools: [{title, text, rerank_score}, ...]
+    Tools-->>Agent: 5 段策展知识
+
+    Note over Agent,LLM: Synthesizer 综合答案
+    Agent->>LLM: messages(含工具结果) → 草稿
+    LLM-->>Agent: draft = "carry trade 是..."
+
+    Note over Agent,Reflector: Reflector 质量审查
+    Agent->>Reflector: 评分(query, tool_results, draft)
+    Reflector-->>Agent: {score: 8, issues: ""}<br/>(>=7 通过)
+
+    Note over Agent,User: 流式输出最终答案
+    Agent->>BE: yield text events (4字一节)
+    BE-->>FE: SSE: data: {"text": "..."}
+    FE->>User: 边接收边渲染 markdown
