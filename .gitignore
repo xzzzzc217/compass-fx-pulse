@@ -1,0 +1,45 @@
+# --- Secrets / per-machine config ---
+**/.env
+*.local
+
+# --- Python ---
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/.venv/
+**/venv/
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/dist/
+**/build/
+**/*.egg-info/
+
+# --- IDE / OS ---
+**/.idea/
+**/.vscode/
+.DS_Store
+Thumbs.db
+
+# --- Logs / temp ---
+*.log
+*.tmp
+
+# --- Frontend ---
+**/node_modules/
+
+# --- ML model weights & checkpoints (too big for GitHub; reproducible via scripts) ---
+llm/models/
+llm/output/
+llm/timexer/checkpoints/
+llm/timexer/checkpoints_ms/
+
+# --- Cached datasets (regenerable; keep small ones for reproducibility) ---
+backend/data/rag/chroma/
+# fx_long/fx_macro_wb/fx_market kept — they're small (<3MB total) and let
+# others reproduce backtest without re-fetching.
+
+# --- One-off training logs ---
+llm/output/training.log
+llm/output/serve.log
+llm/output/rag_download.log

@@ -1,0 +1,11 @@
+# Already installed in compass-fx env (last night):
+#   torch torchvision torchaudio (cu124)
+#   transformers peft bitsandbytes accelerate datasets trl sentencepiece
+#   huggingface_hub modelscope
+#
+# Additional packages this Phase 2 sub-project needs:
+fastapi>=0.115
+uvicorn[standard]>=0.32
+pydantic>=2.0
+openai>=1.50           # for synthesize_zh_sft.py to call DeepSeek
+python-dotenv>=1.0

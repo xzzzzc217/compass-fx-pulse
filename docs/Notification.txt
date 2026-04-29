@@ -1,0 +1,6 @@
+本文件夹下展示花旗杯CompassFXPulse项目的源代码。
+代码皆为本队成员编写，任何个人或组织无权私自复制、修改、分发或用于商业用途。
+对于擅自使用、传播本代码所引发的法律纠纷，本团队保留追究其法律责任的权利。
+This folder displays the source code of the CitiCup CompassFXPulse project.
+The code is written by members of our team, and no individual or organization has the right to copy, modify, distribute or use it for commercial purposes without authorization.
+Our team reserves the right to pursue legal responsibility for any legal disputes arising from unauthorized use or dissemination of this code.
