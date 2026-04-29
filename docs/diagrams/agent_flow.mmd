@@ -1,0 +1,17 @@
+graph LR
+    START([START]) --> Planner
+    Planner -->|tool_calls| Executor
+    Planner -->|no tools| Synthesizer
+    Executor -->|< 2 rounds| Planner
+    Executor -->|>= 2 rounds| Synthesizer
+    Synthesizer --> Reflector
+    Reflector -->|score >= 7| Finalize
+    Reflector -->|score < 7, retry < 1| Synthesizer
+    Reflector -->|retry exhausted| Finalize
+    Finalize --> END([END])
+
+    style Planner fill:#fff8e1
+    style Executor fill:#e8f4fd
+    style Synthesizer fill:#f5f5f5
+    style Reflector fill:#f3e5f5
+    style Finalize fill:#c8e6c9

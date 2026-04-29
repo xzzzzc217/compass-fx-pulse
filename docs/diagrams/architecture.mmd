@@ -1,0 +1,41 @@
+graph TB
+    subgraph "User Entry"
+        Browser["Browser :8081<br/>(Vue 2 + ECharts)"]
+        IDE["Cursor / Claude Desktop"]
+    end
+
+    subgraph "Backend Flask :8080"
+        Routes["routes_chat / routes_agent / routes_rates / routes_health"]
+        Agent["agent/core.py<br/>Plan -> Execute -> Synth -> Reflect"]
+        Tools["agent/tools.py<br/>5 tool HANDLERS"]
+        RAG["rag/pipeline.py<br/>bge-m3 + reranker"]
+        Obs["observability.py<br/>Langfuse"]
+    end
+
+    subgraph "MCP Server (stdio)"
+        MCP["mcp_server/server.py<br/>FastMCP"]
+    end
+
+    subgraph "LLM Routing"
+        DeepSeek["DeepSeek cloud<br/>(Agent tool decisions)"]
+        LocalLoRA["Local Qwen3-1.7B-Finance :8001<br/>(/ai chat)"]
+    end
+
+    subgraph "Data Layer"
+        MySQL[("MySQL<br/>17K rates<br/>900 forecasts")]
+        Chroma[("ChromaDB<br/>251 chunks")]
+        Corpus["30 curated<br/>markdown docs"]
+    end
+
+    Browser -->|HTTP/SSE| Routes
+    IDE -->|MCP/JSON-RPC| MCP
+    Routes --> Agent
+    Agent --> Tools
+    Agent --> Obs
+    Tools --> RAG
+    Tools --> MySQL
+    RAG --> Chroma
+    RAG -.offline ingest.-> Corpus
+    Agent -.tools API.-> DeepSeek
+    Routes -.chat path.-> LocalLoRA
+    MCP -.shares same tools.-> Tools
