@@ -1,11 +1,15 @@
 {
+  "_comment_": "Use absolute path for both `command` (conda env python.exe) and `args[0]` (server.py). Avoid `-m mcp_server.server` + `cwd` because Claude Desktop on Windows may strip `cwd` on config rewrite, breaking module discovery. Setting PYTHONPATH explicitly is also more robust against working-directory edge cases (e.g. non-ASCII paths).",
   "mcpServers": {
     "compass-fx": {
-      "command": "C:\\Users\\21398\\Miniconda3\\envs\\compass-fx\\python.exe",
-      "args": ["-m", "mcp_server.server"],
-      "cwd": "D:\\花旗杯\\compass-fx-pulse\\backend",
+      "command": "<ABSOLUTE_PATH_TO_CONDA_ENV_PYTHON_EXE>",
+      "args": [
+        "<ABSOLUTE_PATH_TO_REPO>/backend/mcp_server/server.py"
+      ],
       "env": {
+        "PYTHONIOENCODING": "utf-8",
         "PYTHONUTF8": "1",
+        "PYTHONPATH": "<ABSOLUTE_PATH_TO_REPO>/backend",
         "KMP_DUPLICATE_LIB_OK": "TRUE",
         "OMP_NUM_THREADS": "1",
         "MKL_NUM_THREADS": "1"

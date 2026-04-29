@@ -1,6 +1,9 @@
 # --- Secrets / per-machine config ---
 **/.env
 *.local
+# Per-machine MCP config (contains absolute python.exe + project paths).
+# Commit only the .example.json templates under backend/mcp_server/.
+.cursor/mcp.json
 
 # --- Python ---
 **/__pycache__/

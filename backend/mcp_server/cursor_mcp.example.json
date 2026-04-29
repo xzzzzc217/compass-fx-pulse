@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "compass-fx": {
+      "command": "<ABSOLUTE_PATH_TO_CONDA_ENV_PYTHON_EXE>",
+      "args": [
+        "<ABSOLUTE_PATH_TO_REPO>/backend/mcp_server/server.py"
+      ],
+      "env": {
+        "PYTHONIOENCODING": "utf-8",
+        "PYTHONUTF8": "1",
+        "PYTHONPATH": "<ABSOLUTE_PATH_TO_REPO>/backend",
+        "KMP_DUPLICATE_LIB_OK": "TRUE",
+        "OMP_NUM_THREADS": "1"
+      }
+    }
+  }
+}
