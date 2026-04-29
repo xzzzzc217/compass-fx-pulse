@@ -221,7 +221,7 @@ Phase 4   📅  TimeXer 完整 backtest（已部分实现）/ FastAPI 异步 / v
 
 - Phase 0 重构基于 2025 年花旗杯（CompassFXPulse）参赛项目源码
 - 原项目设计：花旗杯参赛队
-- 重构、Agent / RAG / MCP / LoRA 改造、TimeXer 实验：[赵子辰](https://github.com/xzzzzc217)（东南大学网络空间安全 / 2027 届）
+- 重构、Agent / RAG / MCP / LoRA 改造、TimeXer 实验：[xzzzzc217](https://github.com/xzzzzc217)（东南大学网络空间安全 / 2027 届）
 
 ## License
 
