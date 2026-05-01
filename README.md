@@ -100,7 +100,7 @@ graph LR
 |---|---|
 | **LoRA 微调** | Qwen3-1.7B QLoRA r=16，eval loss **4.85 → 1.30**（−73%），token 准确率 0.43→0.70 |
 | **TimeXer backtest** | USD/GBP **MAE −10.23%** vs ARIMA（25 年 ECB + vol+mom+VIX+DXY） |
-| **Agent 测试** | 10/10 回归用例通过（5 工具调用 + 2 知识 + 3 拒答场景） |
+| **Agent 评测** | **30 题黄金集 pass 29/31=93.5%，LLM-as-Judge 平均 9.7/9.7/9.8（accuracy/faithfulness/helpfulness）** |
 | **MCP Server** | 5 工具 + 1 resource，stdio + HTTP 双协议，3 PASS smoke test |
 | **RAG 检索** | 30 篇策展语料 → 251 chunks，端到端检索 < 2s（含 reranker） |
 | **数据规模** | 6 货币 × 25 年 = 7126 工作日，17,760 行汇率，900 行 SARIMAX 预测 |
@@ -171,6 +171,7 @@ cd frontend && npm install && npm run dev
 | Phase 3.5 LangGraph | [docs/Phase3_5_LangGraph.md](docs/Phase3_5_LangGraph.md) | 多 Agent 状态机 + Reflector 反思 |
 | **TimeXer backtest** | [docs/TimeXer_BacktestActuals.md](docs/TimeXer_BacktestActuals.md) | **8 个实验 + scaling experiment + 5 层面试 Q&A** |
 | **Phase 4.1 缓存与并发** | [docs/Phase4_1_缓存与并发.md](docs/Phase4_1_缓存与并发.md) | **缓存层 + 连接池 + 限流，实测 ~6500× 提速** |
+| **Phase 4.2 评测集** | [docs/Phase4_2_评测集.md](docs/Phase4_2_评测集.md) | **30 题 + LLM-as-Judge + 消融对照，pass 93.5% / judge 9.7** |
 
 ---
 
@@ -214,7 +215,7 @@ Phase 3.3 ✅  MCP Server（暴露给 Cursor / Claude Desktop）
 Phase 3.4 ✅  Langfuse 全链路 Trace
 Phase 3.5 ✅  LangGraph 多 Agent + Reflector 反思纠错闭环
 Phase 4.1 ✅  缓存层（TTL/Redis 可切）+ 连接池 + 限流（QPS 5→50-100，缓存命中 ~6500× 提速）
-Phase 4.2 📅  100 题黄金集 + LLM-as-Judge 评测
+Phase 4.2 ✅  30 题黄金集 + LLM-as-Judge + 消融对照（pass 29/31=93.5%，judge 平均 9.7/10）
 Phase 4.3 📅  Prompt 注入防御 + 50 对抗样本
 Phase 4.4 📅  FastAPI 异步重写
 Phase 4.5 📅  vLLM 部署本地 LoRA

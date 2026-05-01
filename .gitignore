@@ -46,3 +46,9 @@ backend/data/rag/chroma/
 llm/output/training.log
 llm/output/serve.log
 llm/output/rag_download.log
+
+# --- Eval raw outputs (machine-readable, regenerable; keep .md reports) ---
+backend/eval/results/*.jsonl
+# Keep early smoke-test reports out of the repo (noise)
+backend/eval/results/eval_20260501_205129*
+backend/eval/results/eval_20260501_205253*
