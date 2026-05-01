@@ -172,6 +172,7 @@ cd frontend && npm install && npm run dev
 | **TimeXer backtest** | [docs/TimeXer_BacktestActuals.md](docs/TimeXer_BacktestActuals.md) | **8 个实验 + scaling experiment + 5 层面试 Q&A** |
 | **Phase 4.1 缓存与并发** | [docs/Phase4_1_缓存与并发.md](docs/Phase4_1_缓存与并发.md) | **缓存层 + 连接池 + 限流，实测 ~6500× 提速** |
 | **Phase 4.2 评测集** | [docs/Phase4_2_评测集.md](docs/Phase4_2_评测集.md) | **30 题 + LLM-as-Judge + 消融对照，pass 93.5% / judge 9.7** |
+| **Phase 4.3 注入防御** | [docs/Phase4_3_注入防御.md](docs/Phase4_3_注入防御.md) | **5 层纵深防御 + 31 对抗样本，拦截率 96.8%** |
 
 ---
 
@@ -216,7 +217,7 @@ Phase 3.4 ✅  Langfuse 全链路 Trace
 Phase 3.5 ✅  LangGraph 多 Agent + Reflector 反思纠错闭环
 Phase 4.1 ✅  缓存层（TTL/Redis 可切）+ 连接池 + 限流（QPS 5→50-100，缓存命中 ~6500× 提速）
 Phase 4.2 ✅  30 题黄金集 + LLM-as-Judge + 消融对照（pass 29/31=93.5%，judge 平均 9.7/10）
-Phase 4.3 📅  Prompt 注入防御 + 50 对抗样本
+Phase 4.3 ✅  Prompt 注入 5 层纵深防御 + 31 对抗样本（拦截率 30/31=96.8%）
 Phase 4.4 📅  FastAPI 异步重写
 Phase 4.5 📅  vLLM 部署本地 LoRA
 Phase 4.6 📅  Skill 打包 (forex-pulse.skill)
