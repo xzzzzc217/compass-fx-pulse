@@ -1,7 +1,9 @@
 from flask import Blueprint, jsonify
 
+from .cache import get_stats as cache_stats
 from .config import settings
 from .db import get_cursor
+from .rate_limit import get_default as get_rate_limiter
 
 bp = Blueprint("health", __name__)
 
@@ -31,4 +33,13 @@ def health():
             "model": settings.LLM_AGENT_MODEL,
             "key_loaded": bool(settings.LLM_AGENT_API_KEY),
         },
+        # Phase 4.1 — caching + rate-limiting visibility
+        "cache": cache_stats(),
+        "rate_limit": get_rate_limiter().stats(),
     })
+
+
+@bp.get("/api/cache/stats")
+def cache_stats_endpoint():
+    """Lightweight endpoint just for cache observability."""
+    return jsonify(cache_stats())

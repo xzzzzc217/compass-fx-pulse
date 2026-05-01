@@ -13,6 +13,7 @@ import math
 from datetime import date, datetime, timedelta
 from typing import Any, Callable
 
+from ..cache import cached_execute
 from ..db import get_cursor
 from ..rag.pipeline import retrieve as rag_retrieve
 
@@ -341,10 +342,18 @@ HANDLERS: dict[str, Callable[..., dict]] = {
 }
 
 
-def execute(name: str, args: dict[str, Any]) -> dict:
+def execute(name: str, args: dict[str, Any], use_cache: bool = True) -> dict:
+    """Execute a tool by name.
+
+    Phase 4.1: results are TTL-cached (per-tool TTL in app.cache.TOOL_TTL).
+    Pass use_cache=False for fresh data (e.g. when the user explicitly
+    asks for "real-time").
+    """
     if name not in HANDLERS:
         return {"error": f"unknown tool: {name}"}
     try:
+        if use_cache:
+            return cached_execute(name, args, HANDLERS[name])
         return HANDLERS[name](**args)
     except TypeError as exc:
         return {"error": f"argument error: {exc}"}

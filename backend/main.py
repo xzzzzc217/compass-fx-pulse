@@ -7,10 +7,11 @@ os.environ.setdefault("OMP_NUM_THREADS", "1")
 os.environ.setdefault("MKL_NUM_THREADS", "1")
 os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
 
-from flask import Flask
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 from app.config import settings
+from app.rate_limit import get_default as get_rate_limiter
 from app.routes_agent import bp as agent_bp
 from app.routes_chat import bp as chat_bp
 from app.routes_health import bp as health_bp
@@ -24,6 +25,29 @@ def create_app() -> Flask:
     app.register_blueprint(rates_bp)
     app.register_blueprint(chat_bp)
     app.register_blueprint(agent_bp)
+
+    # Phase 4.1 — per-IP rate limiting on all /api/* endpoints.
+    # Configurable via env: RATE_LIMIT_RPS (default 10), RATE_LIMIT_BURST (default 20).
+    # Health/cache-stats endpoints are intentionally NOT limited (used by monitoring).
+    rps = float(os.environ.get("RATE_LIMIT_RPS", "10"))
+    burst = int(os.environ.get("RATE_LIMIT_BURST", "20"))
+    limiter = get_rate_limiter(rps=rps, burst=burst)
+    EXEMPT_PREFIXES = ("/api/health", "/api/cache/stats")
+
+    @app.before_request
+    def _rate_limit_check():
+        path = request.path or ""
+        if not path.startswith("/api/"):
+            return None
+        if any(path.startswith(p) for p in EXEMPT_PREFIXES):
+            return None
+        client_ip = (request.headers.get("X-Forwarded-For", "").split(",")[0].strip()
+                     or request.remote_addr or "anonymous")
+        if not limiter.allow(client_ip):
+            return jsonify(error="rate limit exceeded",
+                           hint=f"max {rps} req/sec, burst {burst}"), 429
+        return None
+
     return app
 
 
