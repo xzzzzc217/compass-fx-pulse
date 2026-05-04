@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import json
 import time
-from typing import Iterable
+from typing import Any, Iterable
 
 from ..config import settings
 from ..llm import get_agent_client
@@ -183,7 +183,7 @@ def stream_agent(user_text: str, emit_trace: bool = True) -> Iterable[str]:
         return
 
     client = get_agent_client()
-    messages = [
+    messages: list[dict[str, Any]] = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": user_text},
     ]
