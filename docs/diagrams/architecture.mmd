@@ -2,40 +2,72 @@ graph TB
     subgraph "User Entry"
         Browser["Browser :8081<br/>(Vue 2 + ECharts)"]
         IDE["Cursor / Claude Desktop"]
+        BenchClient["Bench client<br/>(httpx async, scripts/concurrency_bench.py)"]
     end
 
-    subgraph "Backend Flask :8080"
-        Routes["routes_chat / routes_agent / routes_rates / routes_health"]
-        Agent["agent/core.py<br/>Plan -> Execute -> Synth -> Reflect"]
-        Tools["agent/tools.py<br/>5 tool HANDLERS"]
-        RAG["rag/pipeline.py<br/>bge-m3 + reranker"]
-        Obs["observability.py<br/>Langfuse"]
+    subgraph "Edge / Defense (Phase 4.1+4.3)"
+        RateLimit["rate_limit.py<br/>token bucket per-IP<br/>10 rps + 20 burst"]
+        Guard["security/injection_guard.py<br/>5-layer defense<br/>regex + unicode + base64<br/>30/31 = 96.8% adversarial"]
     end
 
-    subgraph "MCP Server (stdio)"
-        MCP["mcp_server/server.py<br/>FastMCP"]
+    subgraph "Backend Flask :8080 (sync, WSGI)"
+        Routes["routes_chat / routes_agent / routes_rates / routes_health<br/>+ /api/cache/stats (Phase 4.1)"]
+        Agent["agent/core.py<br/>Plan -> Execute -> Synth -> Reflect<br/>MAX_TOOL_ROUNDS=2 / Reflector >=7"]
+        Tools["agent/tools.py<br/>5 tool HANDLERS<br/>+ validate_tool_args (Phase 4.3)"]
+        Cache["cache.py (Phase 4.1)<br/>TTLCache (default) / Redis<br/>per-tool TTL, ~6500x speedup"]
+        RAG["rag/pipeline.py<br/>bge-m3 + reranker<br/>dense top-20 -> rerank top-5"]
+        Obs["observability.py<br/>Langfuse (graceful no-op)"]
+    end
+
+    subgraph "Backend FastAPI :8082 (async, ASGI, Phase 4.4)"
+        FA_Routes["main_fastapi.py + routes_async.py<br/>async def + asyncio.to_thread<br/>200 concurrent: 2.81x QPS vs Flask"]
+    end
+
+    subgraph "MCP Server (stdio + HTTP)"
+        MCP["mcp_server/server.py<br/>FastMCP, JSON-RPC 2.0<br/>5 tools + 1 resource"]
+    end
+
+    subgraph "Eval Framework (Phase 4.2)"
+        Eval["eval/run_eval.py<br/>30 golden + 31 adversarial<br/>LLM-as-Judge<br/>pass 93.5% / judge 9.7"]
     end
 
     subgraph "LLM Routing"
-        DeepSeek["DeepSeek cloud<br/>(Agent tool decisions)"]
-        LocalLoRA["Local Qwen3-1.7B-Finance :8001<br/>(/ai chat)"]
+        DeepSeek["DeepSeek cloud<br/>Agent decisions + Judge<br/>Planner T=0.1 / Synth 0.7 / Reflect 0"]
+        LocalLoRA["Local Qwen3-1.7B-Finance :8001<br/>FastAPI + transformers<br/>(/ai chat)"]
     end
 
     subgraph "Data Layer"
-        MySQL[("MySQL<br/>17K rates<br/>900 forecasts")]
+        MySQL[("MySQL pool=20<br/>17K rates<br/>900 SARIMAX forecasts")]
         Chroma[("ChromaDB<br/>251 chunks")]
         Corpus["30 curated<br/>markdown docs"]
     end
 
-    Browser -->|HTTP/SSE| Routes
-    IDE -->|MCP/JSON-RPC| MCP
+    Browser -->|HTTP/SSE| RateLimit
+    RateLimit --> Guard
+    Guard --> Routes
+    BenchClient -->|HTTP| FA_Routes
+    IDE -->|MCP/JSON-RPC stdio| MCP
+
     Routes --> Agent
+    FA_Routes -.async wrap.-> Agent
     Agent --> Tools
     Agent --> Obs
+
+    Tools --> Cache
+    Cache -.miss.-> Tools
     Tools --> RAG
     Tools --> MySQL
     RAG --> Chroma
     RAG -.offline ingest.-> Corpus
+
     Agent -.tools API.-> DeepSeek
     Routes -.chat path.-> LocalLoRA
     MCP -.shares same tools.-> Tools
+
+    Eval -.runs against.-> Agent
+
+    style Cache fill:#fff8e1
+    style Guard fill:#ffebee
+    style RateLimit fill:#ffebee
+    style FA_Routes fill:#e8f5e9
+    style Eval fill:#f3e5f5

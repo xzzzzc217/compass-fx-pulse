@@ -7,24 +7,38 @@ graph TB
         ChatUI["AI 答疑<br/>(本地 LoRA)"]
     end
 
-    subgraph Backend["后端 Flask :8080"]
+    subgraph Defense["边缘防御层 (Phase 4.1 + 4.3)"]
+        direction LR
+        RL["Token Bucket 限流<br/>10 rps + 20 burst"]
+        Guard["注入防御 5 层<br/>regex/unicode/base64<br/>96.8% 拦截率"]
+    end
+
+    subgraph Backend["后端 Flask :8080 (sync) / FastAPI :8082 (async)"]
         direction TB
-        RoutesAgent["routes_agent<br/>SSE /api/agent"]
+        RoutesAgent["routes_agent (SSE) / routes_async (ASGI)"]
         RoutesChat["routes_chat<br/>POST /api/chat"]
         RoutesRates["routes_rates<br/>GET /api/rates"]
+        RoutesHealth["routes_health<br/>+ /api/cache/stats"]
         AgentCore["agent/core.py<br/>5 节点状态机"]
-        ToolsLayer["agent/tools.py<br/>5 工具实现"]
+        ToolsLayer["agent/tools.py<br/>5 工具 + 参数校验"]
+        CacheLayer["cache.py (Phase 4.1)<br/>TTLCache + Redis 双后端<br/>~6500x 提速"]
         RAGLayer["rag/pipeline.py<br/>检索 + 重排"]
         Obs["observability.py<br/>Langfuse Trace"]
     end
 
+    subgraph EvalSys["评测系统 (Phase 4.2)"]
+        Golden["30 题黄金集<br/>pass 93.5%"]
+        Adv["31 对抗样本<br/>拦截 96.8%"]
+        Judge["LLM-as-Judge<br/>9.7/9.7/9.8"]
+    end
+
     subgraph LLMRoute["LLM 双路由"]
-        DeepSeek["DeepSeek-Chat<br/>云端 (Agent 决策)"]
+        DeepSeek["DeepSeek-Chat<br/>云端 (Agent 决策)<br/>T=0.1/0.7/0"]
         LoRA["Qwen3-1.7B-Finance<br/>本地 :8001 (LoRA 微调)"]
     end
 
     subgraph DataStore["数据层"]
-        MySQL[("MySQL<br/>17K 行汇率<br/>900 行预测")]
+        MySQL[("MySQL pool=20<br/>17K 行汇率<br/>900 行预测")]
         Chroma[("ChromaDB<br/>251 chunks")]
         Corpus["30 篇策展<br/>markdown 语料"]
     end
@@ -34,30 +48,43 @@ graph TB
         MCPSrv["MCP Server<br/>FastMCP stdio"]
     end
 
-    Home --> RoutesRates
-    Trend --> RoutesRates
-    Forecast --> RoutesRates
-    AgentUI --> RoutesAgent
-    ChatUI --> RoutesChat
+    Home --> RL
+    Trend --> RL
+    Forecast --> RL
+    AgentUI --> RL
+    ChatUI --> RL
+    RL --> Guard
+    Guard --> RoutesAgent
+    Guard --> RoutesChat
+    Guard --> RoutesRates
+    Guard --> RoutesHealth
 
     RoutesAgent --> AgentCore
     RoutesChat -.直连.-> LoRA
-    RoutesRates --> MySQL
+    RoutesRates --> CacheLayer
+    RoutesHealth --> CacheLayer
+    CacheLayer -.miss.-> MySQL
 
     AgentCore --> ToolsLayer
     AgentCore --> Obs
     AgentCore -.tool calls.-> DeepSeek
 
+    ToolsLayer --> CacheLayer
     ToolsLayer --> RAGLayer
-    ToolsLayer --> MySQL
     RAGLayer --> Chroma
     Chroma -.离线 ingest.-> Corpus
 
     IDE --> MCPSrv
     MCPSrv -.复用同一组工具.-> ToolsLayer
 
+    EvalSys -.持续验证.-> AgentCore
+
     style AgentCore fill:#fff8e1
     style ToolsLayer fill:#e8f4fd
     style RAGLayer fill:#f3e5f5
+    style CacheLayer fill:#fff3e0
+    style Guard fill:#ffebee
+    style RL fill:#ffebee
+    style EvalSys fill:#f3e5f5
     style DeepSeek fill:#c8e6c9
     style LoRA fill:#ffe0b2

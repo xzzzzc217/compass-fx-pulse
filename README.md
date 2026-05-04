@@ -26,19 +26,36 @@
 
 ## 系统架构
 
+> **架构图（含 Phase 4 加固）**: 见 `docs/diagrams/architecture.png`（高清完整图），下方 mermaid 是简化版。
+
 ```mermaid
 graph TB
     subgraph "用户入口"
         Browser["浏览器 :8081<br/>(Vue 2 + ECharts)"]
         IDE["Cursor / Claude Desktop"]
+        BenchClient["Bench client<br/>(httpx async)"]
     end
 
-    subgraph "Backend Flask :8080"
-        Routes["routes_chat / routes_agent / routes_rates / routes_health"]
-        Agent["agent/core.py<br/>Plan→Execute→Synth→Reflect"]
-        Tools["agent/tools.py<br/>5 个工具 HANDLERS"]
+    subgraph "边缘防御 (Phase 4.1+4.3)"
+        RateLimit["rate_limit.py<br/>token bucket per-IP<br/>10 rps + 20 burst"]
+        Guard["security/injection_guard.py<br/>5 层防御<br/>96.8% 拦截率"]
+    end
+
+    subgraph "Backend Flask :8080 (sync, WSGI)"
+        Routes["routes_chat / routes_agent / routes_rates / routes_health<br/>+ /api/cache/stats"]
+        Agent["agent/core.py<br/>Plan→Execute→Synth→Reflect<br/>MAX_TOOL_ROUNDS=2"]
+        Tools["agent/tools.py<br/>5 工具 + validate_tool_args"]
+        Cache["cache.py (Phase 4.1)<br/>TTLCache / Redis<br/>~6500× 提速"]
         RAG["rag/pipeline.py<br/>bge-m3 + reranker"]
         Obs["observability.py<br/>Langfuse"]
+    end
+
+    subgraph "Backend FastAPI :8082 (async, ASGI, Phase 4.4)"
+        FA["main_fastapi.py + routes_async.py<br/>200 并发 2.81× QPS"]
+    end
+
+    subgraph "评测框架 (Phase 4.2)"
+        Eval["eval/run_eval.py<br/>30 黄金集 + 31 对抗集<br/>pass 93.5% / judge 9.7"]
     end
 
     subgraph "MCP Server (stdio)"
@@ -46,21 +63,28 @@ graph TB
     end
 
     subgraph "LLM 路由"
-        DeepSeek["DeepSeek 云端<br/>(Agent 工具决策)"]
+        DeepSeek["DeepSeek 云端<br/>(Agent 工具决策 + Judge)"]
         LocalLoRA["本地 Qwen3-1.7B-Finance :8001<br/>(慧聚答疑)"]
     end
 
     subgraph "数据层"
-        MySQL[("MySQL<br/>17K 行汇率<br/>900 行预测")]
+        MySQL[("MySQL pool=20<br/>17K 行汇率<br/>900 行预测")]
         Chroma[("ChromaDB<br/>251 chunks")]
         Corpus["30 篇策展<br/>markdown 语料"]
     end
 
-    Browser -->|HTTP/SSE| Routes
+    Browser -->|HTTP/SSE| RateLimit
+    BenchClient --> FA
+    RateLimit --> Guard
+    Guard --> Routes
     IDE -->|MCP/JSON-RPC| MCP
     Routes --> Agent
+    FA -.async wrap.-> Agent
     Agent --> Tools
     Agent --> Obs
+    Tools --> Cache
+    Cache -.miss.-> RAG
+    Cache -.miss.-> MySQL
     Tools --> RAG
     Tools --> MySQL
     RAG --> Chroma
@@ -68,6 +92,13 @@ graph TB
     Agent -.tools API.-> DeepSeek
     Routes -.chat 路径.-> LocalLoRA
     MCP -.复用同一组工具.-> Tools
+    Eval -.持续验证.-> Agent
+
+    style Cache fill:#fff8e1
+    style Guard fill:#ffebee
+    style RateLimit fill:#ffebee
+    style FA fill:#e8f5e9
+    style Eval fill:#f3e5f5
 ```
 
 ## Agent 状态机（LangGraph）
